@@ -1,3 +1,7 @@
 # Ignorer les fichiers 
+composer.json
 config.php
 .env
+
+#Ignorer dossiers
+/vendor
