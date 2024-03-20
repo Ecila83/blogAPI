@@ -20,14 +20,27 @@ class Posts{
         $this->created_at = $created_at;
         $this->updated_at = $updated_at;
 
-        $this->connectToDatabase();
     }
     
-    private function connectToDatabase(): void {
-        $this->pdo = connect_db();
+// Requete recuperation db (read)
+    public function getAllPosts(): array {
+        $this->connectToDatabase();
+        $query = "SELECT * FROM posts";
+        $statement = $this->pdo->query($query);
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Getters
+    public function getPostById(int $id): ?array {
+        $this->connectToDatabase();
+        $query = "SELECT * FROM posts WHERE id = :id";
+        $statement = $this->pdo->prepare($query);
+        $statement->execute(['id' => $id]);
+        $post = $statement->fetch(PDO::FETCH_ASSOC);
+        return $post ? $post : null;
+    }
+    
+
+// Getters
     public function getId(): int {
         return $this->id;
     }
@@ -52,7 +65,7 @@ class Posts{
         return $this->updated_at;
     }
 
-    // Setters
+// Setters
     public function setTitle(string $title): void {
         $this->title = $title;
     }
@@ -72,5 +85,12 @@ class Posts{
     public function setUpdatedAt(string $updated_at): void {
         $this->updated_at = $updated_at;
     }
+
+// Connection
+    private function connectToDatabase(): void {
+         if (!$this->pdo) {
+             $this->pdo = connect_db();
+    }
+}
 }
 
