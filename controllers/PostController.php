@@ -41,8 +41,8 @@ class PostsController extends BaseController {
     }
 
 //update
-    public function updatePost($postData, $id) {
-        $result = $this->postModel->updatePost($postData);
+    public function updatePost( $id, $postData) {
+        $result = $this->postModel->updatePost($id, $postData);
 
         if ($result) {
             $this->respJson(array("message" => "Mise à jour réussie.", "id" => intval($result)),201);
@@ -54,6 +54,12 @@ class PostsController extends BaseController {
     }
 //suprimer
     public function deletePost($id) {
+        $result = $this->postModel->deletePost($id);
 
+        if(!$result) {
+            $this->respCode(500,"Echec de la supression ");
+        }
+
+        $this->respJson(array("message" => "Supression réussie.", "id" => intval($result)),201);
     }
 }

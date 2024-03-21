@@ -64,31 +64,32 @@ class Posts {
     }     
 
 //requete update
-    public function updatePost($id, $postData) {
-        if (isset($postData->title, $postData->body, $postData->author)) {
-            $this->connectToDatabase();
+public function updatePost($id, $postData) {
+    // Extracting data from $postData object
+    $this->connectToDatabase();
+    $title = $postData->title;
+    $body = $postData->body;
+    $author = $postData->author;
 
-            $title = $postData->title;
-            $body = $postData->body;
-            $author = $postData->author;
-
-            $query = "UPDATE posts (title, body, author, created_at, updated_at) VALUES (:title, :body, :author, NOW(), NOW())";
-            $statement = $this->pdo->prepare($query);
-
-            if ($statement->execute(['title' => $title, 'body' => $body, 'author' => $author])) {
-                return $this->pdo->lastInsertId(); // Mise à jour réussie : retourne l'id.
-            } else {
-                return false; // Échec de la mise a jour
-            }
-        } else {
-            return null; // Données incomplètes
-        }
-      
+    $query = "UPDATE posts SET title = :title, body = :body, author = :author, updated_at = NOW() WHERE id = :id";
+    $statement = $this->pdo->prepare($query);
+    
+    if ($statement->execute(['id' => $id, 'title' => $title, 'body' => $body, 'author' => $author])) {
+        return $id; // Mise à jour réussie : retourne l'id.
+    } else {
+        return false; // Échec de la mise à jour
     }
+}
+
 //requete delete 
-    public function deletePost($id) {
-   
-    }
+public function deletePost($id): array|bool {
+    $this->connectToDatabase();
+    $query = "DELETE FROM posts WHERE id = :id";
+    $statement = $this->pdo->prepare($query);
+    $statement->execute(['id' => $id]);
+    return true;
+}
+
 // Getters
     public function getId(): int {
         return $this->id;
