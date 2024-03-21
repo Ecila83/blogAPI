@@ -65,7 +65,25 @@ class Posts {
 
 //requete update
     public function updatePost($id, $postData) {
-   
+        if (isset($postData->title, $postData->body, $postData->author)) {
+            $this->connectToDatabase();
+
+            $title = $postData->title;
+            $body = $postData->body;
+            $author = $postData->author;
+
+            $query = "UPDATE posts (title, body, author, created_at, updated_at) VALUES (:title, :body, :author, NOW(), NOW())";
+            $statement = $this->pdo->prepare($query);
+
+            if ($statement->execute(['title' => $title, 'body' => $body, 'author' => $author])) {
+                return $this->pdo->lastInsertId(); // Mise à jour réussie : retourne l'id.
+            } else {
+                return false; // Échec de la mise a jour
+            }
+        } else {
+            return null; // Données incomplètes
+        }
+      
     }
 //requete delete 
     public function deletePost($id) {

@@ -42,7 +42,15 @@ class PostsController extends BaseController {
 
 //update
     public function updatePost($postData, $id) {
+        $result = $this->postModel->updatePost($postData);
 
+        if ($result) {
+            $this->respJson(array("message" => "Mise à jour réussie.", "id" => intval($result)),201);
+        } elseif ($result === false) {
+            $this->respCode(500,"Échec de la mise à jour.");
+        } else {
+            $this->respCode(400,"Données incomplètes.");
+        }
     }
 //suprimer
     public function deletePost($id) {

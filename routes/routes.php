@@ -8,10 +8,13 @@ $routes = [
         '/post/(.+)' => fn($id) => (new PostsController())->getPostById($id),
     ],
     'POST' => [
-        '/post' => fn($data) => (new PostsController())->createPost($data),
+        '/post' => fn($postData) => (new PostsController())->createPost($postData),
     ],
     'PUT' => [
-        '/post/(.+)' => fn($data, $id) => print_r(),
+        '/post/(.+)' => fn($postData, $id) => (new PostsController())-updatePost($postData, $id),
+    ],
+    'DELETE' => [
+        '/post/(.+)' => fn($id) => (new PostsController())->deletePost($id),
     ]
 ];
 
@@ -25,6 +28,8 @@ if(isset($routes[$method])) {
         if(preg_match('/^' . str_replace('/', '\\/', $re) . '$/', $path, $matches)) {
             switch($method) {
                 case 'DELETE':
+                    array_shift($matches);
+                break;
                 case 'GET':
                     array_shift($matches);
                 break;
