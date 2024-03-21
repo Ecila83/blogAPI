@@ -1,35 +1,51 @@
 <?php
-require_once 'models/Posts.php';
+require_once(__DIR__ . '/BaseController.php');
+require_once(__DIR__ . '/../models/Posts.php');
 
-class PostsControllers{
+
+class PostsController extends BaseController {
     private $postModel;
 
-    public function __construct(){
+    public function __construct() {
         $this->postModel = new Posts();
     }
+
 //recupereration 
     //tout
     public function getAllPosts() {
         $posts = $this->postModel->getAllPosts();
-
-        //retourne au format json 
-        header('Content-Type: application/json');
-        echo json_encode($posts);
+        $this->respStandard($posts);
     }
 
     //par id
-    public function getPostId($id) {
-        $post = $this->postModel->getPostId($id);
+    public function getPostById($id) {
+        $post = $this->postModel->getPostById($id);
 
         if(!$post) {
-            http_response_code(404);
-            echo json_encode(array("message" => "Publication introuvable."));
-            return;
+            $this->respCode(404,"Publication introuvable");
         }
 
-        header('Content-Type: application/json');
-        echo json_encode($post);
+        $this->respStandard($post);
     }
 
+    public function createPost($postData) {
+        $result = $this->postModel->createPost($postData);
 
+        if ($result) {
+            $this->respJson(array("message" => "Publication créée avec succès.", "id" => intval($result)),201);
+        } elseif ($result === false) {
+            $this->respCode(500,"Échec de la création de la publication.");
+        } else {
+            $this->respCode(400,"Données incomplètes.");
+        }
+    }
+
+//update
+    public function updatePost($postData, $id) {
+
+    }
+//suprimer
+    public function deletePost($id) {
+
+    }
 }

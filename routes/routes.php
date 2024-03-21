@@ -1,11 +1,46 @@
 <?php
-require_once 'controllers/PostsControllers.php';
+
+require_once(__DIR__ . '/../controllers/PostController.php');
 
 $routes = [
-    '/posts' => fn() => (new PostsControllers())->getAllPosts(),
-    '/post/:id' => function($id) { (new PostsControllers())->getPostId($id); },
+    'GET' => [
+        '/posts' => fn() => (new PostsController())->getAllPosts(),
+        '/post/(.+)' => fn($id) => (new PostsController())->getPostById($id),
+    ],
+    'POST' => [
+        '/post' => fn($data) => (new PostsController())->createPost($data),
+    ],
+    'PUT' => [
+        '/post/(.+)' => fn($data, $id) => print_r(),
+    ]
 ];
 
+$method = strtoupper($_SERVER['REQUEST_METHOD']);
 $path = $_SERVER['PATH_INFO'];
-$route = $routes[$path] ?? function() { echo '404 Not Found'; };
-$route();
+
+if(isset($routes[$method])) {
+    $routesToCheck = $routes[$method];
+
+    foreach($routesToCheck as $re => $func) {
+        if(preg_match('/^' . str_replace('/', '\\/', $re) . '$/', $path, $matches)) {
+            switch($method) {
+                case 'DELETE':
+                case 'GET':
+                    array_shift($matches);
+                break;
+
+                case 'PUT':
+                case 'POST':
+                    $payload = file_get_contents('php://input');
+                    $matches[0] = json_decode($payload);
+                break;
+            }
+
+            call_user_func_array($func, $matches);
+            exit();
+        }
+    }
+}
+
+http_response_code(404);
+echo json_encode(array("message" => "Route introuvable."));

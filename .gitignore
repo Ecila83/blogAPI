@@ -1,6 +1,7 @@
 # Ignorer les fichiers 
 composer.json
 .env
+blogAPI.postman_collection.json
 
 #Ignorer dossiers
 /vendor
