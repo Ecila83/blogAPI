@@ -11,20 +11,6 @@ class Posts {
     private string $created_at;
     private string $updated_at;
 
-    public function __construct() {
-
-    }
-
-    // public function __construct(int $id, string $title, string $body, string $author,string $created_at, string $updated_at){
-    //     $this->id = $id;
-    //     $this->title = $title;
-    //     $this->body = $body;
-    //     $this->author = $author;
-    //     $this->created_at = $created_at;
-    //     $this->updated_at = $updated_at;
-
-    // }
-
     public function getAllPosts(): array {
         $this->connectToDatabase();
         $query = "SELECT * FROM posts";
