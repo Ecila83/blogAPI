@@ -4,17 +4,17 @@ require_once(__DIR__ . '/../controllers/PostController.php');
 
 $routes = [
     'GET' => [
-        '/posts' => fn() => (new PostsController())->getAllPosts(),
-        '/post/(.+)' => fn($id) => (new PostsController())->getPostById($id),
+        '/api/v1/posts' => fn() => (new PostsController())->getAllPosts(),
+        '/api/v1/post/(.+)' => fn($id) => (new PostsController())->getPostById($id),
     ],
     'POST' => [
-        '/post' => fn($postData) => (new PostsController())->createPost($postData),
+        '/api/v1/post' => fn($postData) => (new PostsController())->createPost($postData),
     ],
     'PUT' => [
-        '/post/(.+)' => fn($postData, $id) => (new PostsController())->updatePost($postData, $id),
+        '/api/v1/post/(.+)' => fn($postData, $id) => (new PostsController())->updatePost($postData, $id),
     ],
     'DELETE' => [
-        '/post/(.+)' => fn($id) => (new PostsController())->deletePost($id),
+        '/api/v1/post/(.+)' => fn($id) => (new PostsController())->deletePost($id),
     ]
 ];
 
