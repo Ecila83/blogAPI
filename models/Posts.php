@@ -43,6 +43,7 @@ class Posts {
 
     //requete de creation 
     public function createPost($postData) {
+        
         if (isset($postData->title, $postData->body, $postData->author)) {
             $this->connectToDatabase();
 
@@ -65,7 +66,6 @@ class Posts {
 
 //requete update
 public function updatePost($id, $postData) {
-    // Extracting data from $postData object
     $this->connectToDatabase();
     $title = $postData->title;
     $body = $postData->body;

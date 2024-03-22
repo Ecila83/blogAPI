@@ -29,27 +29,38 @@ class PostsController extends BaseController {
     }
 
     public function createPost($postData) {
-        $result = $this->postModel->createPost($postData);
+        $title = filter_var($postData['title'], FILTER_SANITIZE_STRING);
+        $body = filter_var($postData['body'], FILTER_SANITIZE_STRING);
+        $author = filter_var($postData['author'], FILTER_SANITIZE_STRING);
+        if ($title && $body && $author) {
+            $result = $this->postModel->createPost($postData);
 
-        if ($result) {
-            $this->respJson(array("message" => "Publication créée avec succès.", "id" => intval($result)),201);
-        } elseif ($result === false) {
-            $this->respCode(500,"Échec de la création de la publication.");
-        } else {
-            $this->respCode(400,"Données incomplètes.");
+            if ($result) {
+                $this->respJson(array("message" => "Publication créée avec succès.", "id" => intval($result)),201);
+            } elseif ($result === false) {
+                $this->respCode(500,"Échec de la création de la publication.");
+            } else {
+                $this->respCode(400,"Données incomplètes.");
+            }
         }
     }
 
 //update
     public function updatePost($postData, $id) {
-        $result = $this->postModel->updatePost($id, $postData);
+        $title = filter_var($postData['title'], FILTER_SANITIZE_STRING);
+        $body = filter_var($postData['body'], FILTER_SANITIZE_STRING);
+        $author = filter_var($postData['author'], FILTER_SANITIZE_STRING);
 
-        if ($result) {
-            $this->respJson(array("message" => "Mise à jour réussie.", "id" => intval($result)),201);
-        } elseif ($result === false) {
-            $this->respCode(500,"Échec de la mise à jour.");
-        } else {
-            $this->respCode(400,"Données incomplètes.");
+        if ($title && $body && $author) {
+            $result = $this->postModel->updatePost($id, $postData);
+            
+            if ($result) {
+                $this->respJson(array("message" => "Mise à jour réussie.", "id" => intval($result)),201);
+            } elseif ($result === false) {
+                $this->respCode(500,"Échec de la mise à jour.");
+            } else {
+                $this->respCode(400,"Données incomplètes.");
+            }
         }
     }
 //suprimer
