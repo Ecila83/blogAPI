@@ -11,9 +11,8 @@ $routes = [
         '/post' => fn($postData) => (new PostsController())->createPost($postData),
     ],
     'PUT' => [
-        '/post/(.+)/(.+)' => fn($id) => (new PostsController())->updatePost($id),
+        '/post/(.+)' => fn($postData, $id) => (new PostsController())->updatePost($postData, $id),
     ],
-    
     'DELETE' => [
         '/post/(.+)' => fn($id) => (new PostsController())->deletePost($id),
     ]
@@ -29,14 +28,10 @@ if(isset($routes[$method])) {
         if(preg_match('/^' . str_replace('/', '\\/', $re) . '$/', $path, $matches)) {
             switch($method) {
                 case 'DELETE':
-                    array_shift($matches);
-                break;
                 case 'GET':
                     array_shift($matches);
                 break;
                 case 'PUT':
-                    array_shift($matches);
-                    break;
                 case 'POST':
                     $payload = file_get_contents('php://input');
                     $matches[0] = json_decode($payload);

@@ -41,7 +41,7 @@ class PostsController extends BaseController {
     }
 
 //update
-    public function updatePost( $id, $postData) {
+    public function updatePost($postData, $id) {
         $result = $this->postModel->updatePost($id, $postData);
 
         if ($result) {
@@ -60,6 +60,6 @@ class PostsController extends BaseController {
             $this->respCode(500,"Echec de la supression ");
         }
 
-        $this->respJson(array("message" => "Supression réussie.", "id" => intval($result)),201);
+        $this->respJson(array("message" => "Supression réussie.", "id" => intval($id)), 201);
     }
 }
