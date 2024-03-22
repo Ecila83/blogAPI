@@ -13,7 +13,9 @@ class PostsController extends BaseController {
 //recupereration 
     //tout
     public function getAllPosts() {
-        $posts = $this->postModel->getAllPosts();
+        $limit = intval($_GET['limit'] ?? '-1');
+        $offset = intval($_GET['offset'] ?? '-1');
+        $posts = $this->postModel->getAllPosts($limit, $offset);
         $this->respStandard($posts);
     }
 
@@ -53,7 +55,7 @@ class PostsController extends BaseController {
 
         if ($title && $body && $author) {
             $result = $this->postModel->updatePost($id, $postData);
-            
+
             if ($result) {
                 $this->respJson(array("message" => "Mise à jour réussie.", "id" => intval($result)),201);
             } elseif ($result === false) {

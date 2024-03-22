@@ -46,3 +46,7 @@ if(isset($routes[$method])) {
 
 http_response_code(404);
 echo json_encode(array("message" => "Route introuvable."));
+
+
+
+

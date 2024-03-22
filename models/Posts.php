@@ -11,12 +11,23 @@ class Posts {
     private string $created_at;
     private string $updated_at;
 
-    public function getAllPosts(): array {
+    public function getAllPosts($limit, $offset): array {
         $this->connectToDatabase();
-        $query = "SELECT * FROM posts";
-        $statement = $this->pdo->query($query);
-        return $statement->fetchAll(PDO::FETCH_ASSOC);
+        $query = "SELECT * FROM posts";  
+        
+        if($limit > -1 && $offset > -1) {
+            $query .= " LIMIT :limit OFFSET :offset";
+            $statement = $this->pdo->prepare($query);
+            $statement->bindParam(':limit', $limit, PDO::PARAM_INT);
+            $statement->bindParam(':offset', $offset, PDO::PARAM_INT);
+            $statement->execute();
+        } else {
+            $statement = $this->pdo->query($query);
+        }
+        $posts = $statement->fetchAll(PDO::FETCH_ASSOC);
+        return $posts;
     }
+    
 
     public function getPostById(int $id): array|bool {
         $this->connectToDatabase();
