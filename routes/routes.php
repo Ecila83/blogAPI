@@ -16,6 +16,7 @@ $routes = [
         '/api/v1/post' => fn($postData) => (new PostsController())->createPost($postData),
 
         '/api/v1/user' => fn($userData) => (new UsersController())->createUser($userData),
+        '/api/v1/user/login' => fn($loginData) => (new UsersController())->loginUser($loginData),
     ],
     'PUT' => [
         '/api/v1/post/(.+)' => fn($postData, $id) => (new PostsController())->updatePost($postData, $id),

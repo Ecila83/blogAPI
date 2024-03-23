@@ -87,52 +87,6 @@ class Posts {
         return true;
     }
 
-    // Getters
-    public function getId(): int {
-        return $this->id;
-    }
-
-    public function getTitle(): string {
-        return $this->title;
-    }
-
-    public function getBody(): string {
-        return $this->body;
-    }
-
-    public function getAuthor(): string {
-        return $this->author;
-    }
-
-    public function getCreatedAt(): string {
-        return $this->created_at;
-    }
-
-    public function getUpdatedAt(): string {
-        return $this->updated_at;
-    }
-
-// Setters
-    public function setTitle(string $title): void {
-        $this->title = $title;
-    }
-
-    public function setBody(string $body): void {
-        $this->body = $body;
-    }
-
-    public function setAuthor(string $author): void {
-        $this->author = $author;
-    }
-
-    public function setCreatedAt(string $created_at): void {
-        $this->created_at = $created_at;
-    }
-
-    public function setUpdatedAt(string $updated_at): void {
-        $this->updated_at = $updated_at;
-    }
-
 // Connection
     private function connectToDatabase(): void {
          if (!$this->pdo) {

@@ -24,7 +24,9 @@ class Users {
         } else {
             $statement = $this->pdo->query($query);
         }
+
         $users = $statement->fetchAll(PDO::FETCH_ASSOC);
+
         return $users;
     }
     
@@ -40,24 +42,19 @@ class Users {
 
     //requete de creation 
     public function createUser($userData) {
-        
-        if (isset($userData->username, $userData->email, $userData->password)) {
-            $this->connectToDatabase();
+        $this->connectToDatabase();
 
-            $username = $userData->username;
-            $email = $userData->email;
-            $password = password_hash($userData->password, PASSWORD_DEFAULT); 
+        $username = $userData->username;
+        $email = $userData->email;
+        $password = $userData->password;
 
-            $query = "INSERT INTO users (username, email, password, created_at, updated_at) VALUES (:username, :email, :password, NOW(), NOW())";
-            $statement = $this->pdo->prepare($query);
+        $query = "INSERT INTO users (username, email, password, created_at, updated_at) VALUES (:username, :email, :password, NOW(), NOW())";
+        $statement = $this->pdo->prepare($query);
 
-            if ($statement->execute(['username' => $username, 'email' => $email, 'password' => $password])) {
-                return $this->pdo->lastInsertId(); // Insertion réussie : retourne l'id.
-            } else {
-                return false; // Échec de l'insertion
-            }
+        if ($statement->execute(['username' => $username, 'email' => $email, 'password' => $password])) {
+            return $this->pdo->lastInsertId(); // Insertion réussie : retourne l'id.
         } else {
-            return null; // Données incomplètes
+            return false; // Échec de l'insertion
         }
     }     
 
@@ -67,7 +64,7 @@ class Users {
 
         $username = $userData->username;
         $email = $userData->email;
-        $password = password_hash($userData->password, PASSWORD_DEFAULT); 
+        $password = $userData->password;
 
         $query = "UPDATE users SET username = :username, email = :email, password = :password, updated_at = NOW() WHERE id = :id";
         $statement = $this->pdo->prepare($query);
@@ -88,10 +85,30 @@ class Users {
         return true;
     }
 
+    public function getByUsername($username): ?array{
+        $this->connectToDatabase();
+        $query = "SELECT * FROM users WHERE username = :username LIMIT 1";
+        $statement = $this->pdo->prepare($query);
+        $statement->execute(['username' => $username]);
+        $user = $statement->fetch(PDO::FETCH_ASSOC);
+        return $user !== false ? $user : null;
+    }
+
 // Connection
     private function connectToDatabase(): void {
          if (!$this->pdo) {
              $this->pdo = connect_db();
+        }
     }
-}
-}
+
+    public function authenticate($username, $password):bool {
+       
+        $user = $this->getByUsername($username);
+
+        if ($user && password_verify($password, $user['password'])) {
+            return true;
+        }
+
+        return false;
+        }
+    }

@@ -13,7 +13,6 @@ class BaseController {
         header('Content-Type: application/json');
         echo json_encode(array("message" => $message),JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
         exit();
-
     }
 
     protected function respStandard($data) {
