@@ -24,8 +24,8 @@ class Users {
         } else {
             $statement = $this->pdo->query($query);
         }
-        $posts = $statement->fetchAll(PDO::FETCH_ASSOC);
-        return $posts;
+        $users = $statement->fetchAll(PDO::FETCH_ASSOC);
+        return $users;
     }
     
 
@@ -39,19 +39,19 @@ class Users {
     }
 
     //requete de creation 
-    public function createUser($postData) {
+    public function createUser($userData) {
         
-        if (isset($postData->title, $postData->body, $postData->author)) {
+        if (isset($userData->username, $userData->email, $userData->password)) {
             $this->connectToDatabase();
 
-            $username = $postData->username;
-            $email = $postData->email;
-            $password = $postData->password;
+            $username = $userData->username;
+            $email = $userData->email;
+            $password = password_hash($userData->password, PASSWORD_DEFAULT); 
 
             $query = "INSERT INTO users (username, email, password, created_at, updated_at) VALUES (:username, :email, :password, NOW(), NOW())";
             $statement = $this->pdo->prepare($query);
 
-            if ($statement->execute(['username,' => $username, 'email' => $email, 'password' => $password])) {
+            if ($statement->execute(['username' => $username, 'email' => $email, 'password' => $password])) {
                 return $this->pdo->lastInsertId(); // Insertion réussie : retourne l'id.
             } else {
                 return false; // Échec de l'insertion
@@ -62,12 +62,12 @@ class Users {
     }     
 
     //requete update
-    public function updateUser($id, $postData) {
+    public function updateUser($userData,$id) {
         $this->connectToDatabase();
 
-        $username = $postData->username;
-        $email = $postData->email;
-        $password = $postData->password;
+        $username = $userData->username;
+        $email = $userData->email;
+        $password = password_hash($userData->password, PASSWORD_DEFAULT); 
 
         $query = "UPDATE users SET username = :username, email = :email, password = :password, updated_at = NOW() WHERE id = :id";
         $statement = $this->pdo->prepare($query);

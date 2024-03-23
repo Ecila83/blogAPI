@@ -1,6 +1,8 @@
 <?php
 
 require_once(__DIR__ . '/../controllers/PostController.php');
+require_once(__DIR__ . '/../controllers/UsersController.php');
+
 
 $routes = [
     'GET' => [
@@ -13,12 +15,12 @@ $routes = [
     'POST' => [
         '/api/v1/post' => fn($postData) => (new PostsController())->createPost($postData),
 
-        '/api/v1/user' => fn($userData) => (new UsersController())->createUser($userData)
+        '/api/v1/user' => fn($userData) => (new UsersController())->createUser($userData),
     ],
     'PUT' => [
         '/api/v1/post/(.+)' => fn($postData, $id) => (new PostsController())->updatePost($postData, $id),
 
-        '/api/v1/user/(.+)' => fn($postData,$id) => (new UsersController())->updateUser($postData,$id),
+        '/api/v1/user/(.+)' => fn($userData,$id) => (new UsersController())->updateUser($userData,$id),
     ],
     'DELETE' => [
         '/api/v1/post/(.+)' => fn($id) => (new PostsController())->deletePost($id),

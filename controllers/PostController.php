@@ -31,9 +31,9 @@ class PostsController extends BaseController {
     }
 
     public function createPost($postData) {
-        $title = filter_var($postData['title'], FILTER_SANITIZE_STRING);
-        $body = filter_var($postData['body'], FILTER_SANITIZE_STRING);
-        $author = filter_var($postData['author'], FILTER_SANITIZE_STRING);
+        $title = htmlspecialchars($postData->title);
+        $body = htmlspecialchars($postData->body);
+        $author = htmlspecialchars($postData->author);
         if ($title && $body && $author) {
             $result = $this->postModel->createPost($postData);
 
@@ -49,9 +49,9 @@ class PostsController extends BaseController {
 
 //update
     public function updatePost($postData, $id) {
-        $title = filter_var($postData['title'], FILTER_SANITIZE_STRING);
-        $body = filter_var($postData['body'], FILTER_SANITIZE_STRING);
-        $author = filter_var($postData['author'], FILTER_SANITIZE_STRING);
+        $title = htmlspecialchars($postData->title);
+        $body = htmlspecialchars($postData->body);
+        $author = htmlspecialchars($postData->author);
 
         if ($title && $body && $author) {
             $result = $this->postModel->updatePost($id, $postData);
