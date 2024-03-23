@@ -6,15 +6,25 @@ $routes = [
     'GET' => [
         '/api/v1/posts' => fn() => (new PostsController())->getAllPosts(),
         '/api/v1/post/(.+)' => fn($id) => (new PostsController())->getPostById($id),
+
+        '/api/v1/users' => fn() => (new UsersController())->getAllUsers(),
+        '/api/v1/user/(.+)' => fn($id) => (new UsersController())->getUserById($id),
     ],
     'POST' => [
         '/api/v1/post' => fn($postData) => (new PostsController())->createPost($postData),
+
+        '/api/v1/user' => fn($userData) => (new UsersController())->createUser($userData)
     ],
     'PUT' => [
         '/api/v1/post/(.+)' => fn($postData, $id) => (new PostsController())->updatePost($postData, $id),
+
+        '/api/v1/user/(.+)' => fn($postData,$id) => (new UsersController())->updateUser($postData,$id),
     ],
     'DELETE' => [
         '/api/v1/post/(.+)' => fn($id) => (new PostsController())->deletePost($id),
+
+        '/api/v1/user/(.+)' => fn($id) => (new UsersController())->deleteUser($id),
+
     ]
 ];
 
