@@ -1,5 +1,6 @@
 <?php
-
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 class BaseController {
     protected function respJson($data,$code = 200) {
         http_response_code($code);
@@ -23,5 +24,37 @@ class BaseController {
         ];
 
         $this->respJson($result);
+    }
+
+    protected function getCheckAuthorization() {
+        $key = $_ENV['JWT_SECRET'];
+
+        $encodedToken = null;
+        $headers = apache_request_headers();
+
+        if(isset($headers['Authorization'])){
+            $matches = array();
+            preg_match('/[Bb]earer (.*)/', $headers['Authorization'], $matches);
+
+            if(isset($matches[1])){
+                $encodedToken = $matches[1];
+            }
+        } 
+
+        if($encodedToken) {
+            try {
+                $token = JWT::decode($encodedToken, new Key($key, 'HS256'));
+
+                if(time() > $token->valid_until){
+                    return "expiré";
+                }
+
+                return $token->level;
+            } catch (Exception $e) {
+                return "anonymous";
+            }
+        }else{
+            return "anonymous";
+        }
     }
 }

@@ -3,6 +3,10 @@
 require_once(__DIR__ . '/BaseController.php');
 require_once(__DIR__ . '/../models/Users.php');
 
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+
+
 
 class UsersController extends BaseController {
     private Users $usersModel;
@@ -51,7 +55,13 @@ class UsersController extends BaseController {
     }
 
 //update
-    public function updateUser($userData, $id) {        
+    public function updateUser($userData, $id) {      
+        $level = $this->getCheckAuthorization();
+
+        if ($level != 'admin') {
+            $this->respCode(401,"Mise à jour non autorisée");
+        }
+
         if(! isset($userData->username, $userData->email, $userData->password) ) {
             $this->respCode(400,"Données incomplètes.");
         }
@@ -81,11 +91,22 @@ class UsersController extends BaseController {
 
     public function loginUser($loginData){
         if (isset($loginData->username) && isset($loginData->password)) {
+            
             $username = $loginData->username;
             $password = $loginData->password;
+            $user = $this->usersModel->authenticate($username, $password);
 
-            if ($this->usersModel->authenticate($username, $password)) {
-                return $this->respCode(200, "Authentification réussie !");
+            if ($user) {
+                $key = $_ENV['JWT_SECRET'];
+                $payload = [
+                    'id' => $user->id,
+                    'level' => $user->authorization,
+                    'valid_until' => time() + 3600
+                ];
+                
+                $jwt = JWT::encode($payload, $key, 'HS256');
+                
+                return $this->respJson(array("message" => "login réussi.", "token" => $jwt), 200);
             } else {
                 return $this->respCode(401, "Identifiants incorrects !");
             }

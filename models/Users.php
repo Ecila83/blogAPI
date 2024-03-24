@@ -85,13 +85,13 @@ class Users {
         return true;
     }
 
-    public function getByUsername($username): ?array{
+    public function getByUsername($username):stdClass {
         $this->connectToDatabase();
         $query = "SELECT * FROM users WHERE username = :username LIMIT 1";
         $statement = $this->pdo->prepare($query);
         $statement->execute(['username' => $username]);
-        $user = $statement->fetch(PDO::FETCH_ASSOC);
-        return $user !== false ? $user : null;
+        $user = $statement->fetch(PDO::FETCH_OBJ);
+        return $user;
     }
 
 // Connection
@@ -101,14 +101,13 @@ class Users {
         }
     }
 
-    public function authenticate($username, $password):bool {
-       
+    public function authenticate($username, $password):stdClass  {
         $user = $this->getByUsername($username);
 
-        if ($user && password_verify($password, $user['password'])) {
-            return true;
+        if ($user && password_verify($password, $user->password)) {
+            return $user;
         }
 
         return false;
-        }
     }
+}
