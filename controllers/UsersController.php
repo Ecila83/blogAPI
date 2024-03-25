@@ -99,6 +99,13 @@ public function updateUser($userData, $id) {
 
 //suprimer
     public function deleteUser($id) {
+        $level = $this->getCheckAuthorization();
+
+        // Vérifier si l'utilisateur est autorisé à supprimer l'utilisateur
+        if ($level !== 'admin') {
+            $this->respCode(401, "Suppression non autorisée. Seul l'administrateur peut supprimer des utilisateurs.");
+        }
+        
         $result = $this->usersModel->deleteUser($id);
 
         if(!$result) {
