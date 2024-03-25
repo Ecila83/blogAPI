@@ -55,29 +55,48 @@ class UsersController extends BaseController {
     }
 
 //update
-    public function updateUser($userData, $id) {      
-        $level = $this->getCheckAuthorization();
+public function updateUser($userData, $id) {      
+    $level = $this->getCheckAuthorization();
 
-        if ($level != 'admin') {
-            $this->respCode(401,"Mise à jour non autorisée");
+    // Récupérer l'ID de l'utilisateur à partir du jeton JWT
+    $userIdFromToken = $this->getUserIdFromToken();
+
+    // Vérifier si l'utilisateur est autorisé à effectuer la mise à jour
+    if ($level === 'admin' || ($level === 'user' && intval($userIdFromToken) === intval($id))) {
+        // Récupérer l'utilisateur existant
+        $existingUser = $this->usersModel->getUserById($id);
+
+        // Vérifier si l'utilisateur existe
+        if (!$existingUser) {
+            $this->respCode(404, "Utilisateur introuvable");
         }
 
-        if(! isset($userData->username, $userData->email, $userData->password) ) {
-            $this->respCode(400,"Données incomplètes.");
+        // Vérifier si les données de l'utilisateur sont complètes
+        if (!isset($userData->username, $userData->email, $userData->password)) {
+            $this->respCode(400, "Données incomplètes.");
         }
 
+        // Nettoyer et mettre à jour les données de l'utilisateur
         $userData->username = htmlspecialchars($userData->username);
-        $userData->email = filter_var($userData->email, FILTER_SANITIZE_EMAIL) ;
+        $userData->email = filter_var($userData->email, FILTER_SANITIZE_EMAIL);
         $userData->password = password_hash($userData->password, PASSWORD_DEFAULT);
 
+        // Mettre à jour l'utilisateur
         $result = $this->usersModel->updateUser($userData, $id);
 
+        // Vérifier si la mise à jour a réussi
         if ($result) {
             $this->respJson(array("message" => "Mise à jour réussie.", "id" => intval($result)), 201);
         } else {
             $this->respCode(500, "Échec de la mise à jour.");
         }
+    } else {
+        $this->respCode(401, "Mise à jour non autorisée");
     }
+}
+
+
+
 //suprimer
     public function deleteUser($id) {
         $result = $this->usersModel->deleteUser($id);

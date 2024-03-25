@@ -57,4 +57,36 @@ class BaseController {
             return "anonymous";
         }
     }
+
+    protected function getUserIdFromToken() {
+        $key = $_ENV['JWT_SECRET'];
+    
+        $encodedToken = null;
+        $headers = apache_request_headers();
+    
+        if (isset($headers['Authorization'])) {
+            $matches = array();
+            preg_match('/[Bb]earer (.*)/', $headers['Authorization'], $matches);
+    
+            if (isset($matches[1])) {
+                $encodedToken = $matches[1];
+            }
+        } 
+    
+        if ($encodedToken) {
+            try {
+                $token = JWT::decode($encodedToken, new Key($key, 'HS256'));
+    
+                if (time() > $token->valid_until) {
+                    return null; // Jeton expiré
+                }
+    
+                return $token->id; // Renvoyer l'ID de l'utilisateur
+            } catch (Exception $e) {
+                return null; // Jeton invalide
+            }
+        } else {
+            return null; // Aucun jeton trouvé dans l'en-tête Authorization
+        }
+    }
 }
