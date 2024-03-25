@@ -91,8 +91,13 @@ class Users {
         $statement = $this->pdo->prepare($query);
         $statement->execute(['username' => $username]);
         $user = $statement->fetch(PDO::FETCH_OBJ);
-        return $user;
+        if ($user) {
+            return $user;
+        } else {
+            return null; // Aucun utilisateur trouvé avec ce nom d'utilisateur
+        }
     }
+    
 
 // Connection
     private function connectToDatabase(): void {

@@ -18,23 +18,49 @@ class UsersController extends BaseController {
 //recupereration 
     //tout
     public function getAllUsers() {
-        $limit = intval($_GET['limit'] ?? '-1');
-        $offset = intval($_GET['offset'] ?? '-1');
-
-        $users = $this->usersModel->getAllUsers($limit, $offset);
-        $this->respStandard($users);
-    }
-
-    //par id
-    public function getUserById($id) {
-        $user = $this->usersModel->getUserById($id);
-
-        if(!$user) {
-            $this->respCode(404,"Utilisateur introuvable");
+        $level = $this->getCheckAuthorization();
+        
+        if ($level === 'admin') {
+            $limit = intval($_GET['limit'] ?? '-1');
+            $offset = intval($_GET['offset'] ?? '-1');
+    
+            $users = $this->usersModel->getAllUsers($limit, $offset);
+            $this->respStandard($users);
+        } elseif ($level === 'user') {      
+            $this->respCode(401, "non autorisé");
         }
-
-        $this->respStandard($user);
     }
+    
+    public function getUserById($id) {
+        $level = $this->getCheckAuthorization();
+        
+        if ($level === 'admin') {
+            $user = $this->usersModel->getUserById($id);
+    
+            if(!$user) {
+                $this->respCode(404,"Utilisateur introuvable");
+            }
+    
+            $this->respStandard($user);
+        } elseif ($level === 'user') {
+            $userId = $this->getUserIdFromToken();
+            $userId = intval($userId);
+            $id = intval($id);
+    
+            if ($userId === $id) {
+                $user = $this->usersModel->getUserById($id);
+    
+                if(!$user) {
+                    $this->respCode(404,"Utilisateur introuvable");
+                }
+    
+                $this->respStandard($user);
+            } else {
+                $this->respCode(401, "non autorisé");
+            }
+        }
+    }
+    
 
     public function createUser($userData) {
         if(! isset($userData->username, $userData->email, $userData->password) ) {
@@ -105,7 +131,7 @@ public function updateUser($userData, $id) {
         if ($level !== 'admin') {
             $this->respCode(401, "Suppression non autorisée. Seul l'administrateur peut supprimer des utilisateurs.");
         }
-        
+
         $result = $this->usersModel->deleteUser($id);
 
         if(!$result) {
