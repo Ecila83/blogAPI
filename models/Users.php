@@ -85,7 +85,7 @@ class Users {
         return true;
     }
 
-    public function getByUsername($username):stdClass {
+    public function getByUsername($username):?stdClass {
         $this->connectToDatabase();
         $query = "SELECT * FROM users WHERE username = :username LIMIT 1";
         $statement = $this->pdo->prepare($query);
@@ -106,13 +106,13 @@ class Users {
         }
     }
 
-    public function authenticate($username, $password):stdClass  {
+    public function authenticate($username, $password):?stdClass  {
         $user = $this->getByUsername($username);
 
         if ($user && password_verify($password, $user->password)) {
             return $user;
         }
 
-        return false;
+        return null;
     }
 }

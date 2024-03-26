@@ -26,6 +26,16 @@ class BaseController {
         $this->respJson($result);
     }
 
+    protected function handleResult($result, $successMessage, $failureMessage, $incompleteMessage = "Données incomplètes.") {
+        if ($result) {
+            $this->respJson(array("message" => $successMessage, "id" => intval($result)), 201);
+        } elseif ($result === false) {
+            $this->respCode(500, $failureMessage);
+        } else {
+            $this->respCode(400, $incompleteMessage);
+        }
+    }
+
     protected function getTokenContent($tokenKey = null) {
         $encodedToken = null;
         $headers = apache_request_headers();
@@ -74,5 +84,16 @@ class BaseController {
             return null; 
         }
         return $tokenContent->id;
+    }
+
+    public function checkAuthorizationAndUserId() {
+        $level = $this->getCheckAuthorization();
+        $userId = $this->getUserIdFromToken();
+    
+        if ($level !== 'admin' && $level !== 'user' || !$userId) {
+            $this->respCode(401, "Non autorisé");
+        }
+    
+        return array('level' => $level, 'user_id' => $userId);
     }
 }

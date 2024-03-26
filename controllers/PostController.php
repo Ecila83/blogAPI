@@ -33,84 +33,75 @@ class PostsController extends BaseController {
         $this->respStandard($post);
     }
 
+//creation
     public function createPost($postData) {
-        $level = $this->getCheckAuthorization();
-    
-        if ($level === 'admin' || $level === 'user') {
-            $userId = $this->getUserIdFromToken();
-
-            if ($userId) {
-                $user = $this->usersModel->getUserById($userId);
-
-                if ($user) {
-                    $postData->author = $user['username'];
-                    $postData->user_id = $userId;
-
-                    if (isset($postData->title, $postData->body)) {
-                        $postData->title = htmlspecialchars($postData->title);
-                        $postData->body = htmlspecialchars($postData->body);
-
-                        $result = $this->postModel->createPost($postData);
-    
-                        if ($result) {
-                            $this->respJson(array("message" => "Publication créée avec succès.", "id" => intval($result)), 201);
-                        } elseif ($result === false) {
-                            $this->respCode(500, "Échec de la création de la publication.");
-                        } else {
-                            $this->respCode(400, "Données incomplètes.");
-                        }
-                    } else {
-                        $this->respCode(400, "Données incomplètes.");
-                    }
-                } else {
-                    $this->respCode(404, "Utilisateur introuvable.");
-                }
-            } else {
-                $this->respCode(401, "Non autorisé");
-            }
+        if (!isset($postData->title, $postData->body)) {
+            $this->respCode(400, "Données incomplètes.");
         }
+
+        ['level' => $level, 'user_id' => $userId] = $this->checkAuthorizationAndUserId();
+
+        $user = $this->usersModel->getUserById($userId);
+        if (!$user) {
+            $this->respCode(404, "Utilisateur introuvable.");
+        }
+
+        $title = htmlspecialchars($postData->title);
+        $body = htmlspecialchars($postData->body);
+
+        $postData->author = $user['username'];
+        $postData->user_id = $userId;
+
+        $result = $this->postModel->createPost($postData);
+
+        $this->handleResult(
+            $result, 
+            "Publication créée avec succès.", 
+            "Échec de la création de la publication."
+        );
     }
 
 //update
-    public function updatePost($postData, $id) {
-        $level = $this->getCheckAuthorization();
-        $userIdFromToken = $this->getUserIdFromToken();
+public function updatePost($postData, $id) {
+    $userData = $this->checkAuthorizationAndUserId();
+    $level = $userData['level'];
+    $userIdFromToken = $userData['user_id'];
 
-        if ($level === 'admin' || ($level === 'user' && intval($userIdFromToken) === $id)) {
-            $existingPost = $this->postModel->getPostById($id);
-
-            if (!$existingPost) {
-                $this->respCode(404, "Post introuvable");
-            }
-            if (!isset($postData->title, $postData->body, $postData->author)) {
-                $this->respCode(400, "Données incomplètes.");
-            }
-            
-            $title = htmlspecialchars($postData->title);
-            $body = htmlspecialchars($postData->body);
-            $author = $existingPost['author'];
-
-            if ($title && $body) {
-                // Créer un objet avec les données mises à jour
-                $updatedPostData = (object) [
-                    'title' => $title,
-                    'body' => $body,
-                    'author' => $author // Utiliser l'auteur du post existant
-                ];
-                $result = $this->postModel->updatePost($id, $updatedPostData);
-
-                if ($result) {
-                    $this->respJson(array("message" => "Mise à jour réussie.", "id" => intval($result)),201);
-                } elseif ($result === false) {
-                    $this->respCode(500,"Échec de la mise à jour.");
-                } else {
-                    $this->respCode(400,"Données incomplètes.");
-                }
-        }else{
-            $this->respCode(401,"Non autorisé");
-         }   
-      }
+    $existingPost = $this->postModel->getPostById($id);
+    if (!$existingPost) {
+        $this->respCode(404, "Post introuvable");
     }
+
+    if ($level !== 'admin' && intval($userIdFromToken) !==  $existingPost['user_id']) {
+        $this->respCode(401, "Non autorisé");
+    }
+
+    if (!isset($postData->title, $postData->body, $postData->author)) {
+        $this->respCode(400, "Données incomplètes.");
+    }
+
+    $title = htmlspecialchars($postData->title);
+    $body = htmlspecialchars($postData->body);
+    $author = $existingPost['author'];
+
+    if ($title && $body) {
+        $updatedPostData = (object) [
+            'title' => $title,
+            'body' => $body,
+            'author' => $author
+        ];
+
+        $result = $this->postModel->updatePost($id, $updatedPostData);
+
+        $this->handleResult(
+            $result,
+            "Mise à jour réussie.",
+            "Échec de la mise à jour.",
+            "Titre et corps du post ne peuvent pas être vides."
+        );
+    }
+}
+
 //suprimer
     public function deletePost($id) {
         $level = $this->getCheckAuthorization();
