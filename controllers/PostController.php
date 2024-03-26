@@ -73,21 +73,43 @@ class PostsController extends BaseController {
 
 //update
     public function updatePost($postData, $id) {
-        $title = htmlspecialchars($postData->title);
-        $body = htmlspecialchars($postData->body);
-        $author = htmlspecialchars($postData->author);
+        $level = $this->getCheckAuthorization();
+        $userIdFromToken = $this->getUserIdFromToken();
 
-        if ($title && $body && $author) {
-            $result = $this->postModel->updatePost($id, $postData);
+        if ($level === 'admin' || ($level === 'user' && intval($userIdFromToken) === $id)) {
+            $existingPost = $this->postModel->getPostById($id);
 
-            if ($result) {
-                $this->respJson(array("message" => "Mise à jour réussie.", "id" => intval($result)),201);
-            } elseif ($result === false) {
-                $this->respCode(500,"Échec de la mise à jour.");
-            } else {
-                $this->respCode(400,"Données incomplètes.");
+            if (!$existingPost) {
+                $this->respCode(404, "Post introuvable");
             }
-        }
+            if (!isset($postData->title, $postData->body, $postData->author)) {
+                $this->respCode(400, "Données incomplètes.");
+            }
+            
+            $title = htmlspecialchars($postData->title);
+            $body = htmlspecialchars($postData->body);
+            $author = $existingPost['author'];
+
+            if ($title && $body) {
+                // Créer un objet avec les données mises à jour
+                $updatedPostData = (object) [
+                    'title' => $title,
+                    'body' => $body,
+                    'author' => $author // Utiliser l'auteur du post existant
+                ];
+                $result = $this->postModel->updatePost($id, $updatedPostData);
+
+                if ($result) {
+                    $this->respJson(array("message" => "Mise à jour réussie.", "id" => intval($result)),201);
+                } elseif ($result === false) {
+                    $this->respCode(500,"Échec de la mise à jour.");
+                } else {
+                    $this->respCode(400,"Données incomplètes.");
+                }
+        }else{
+            $this->respCode(401,"Non autorisé");
+         }   
+      }
     }
 //suprimer
     public function deletePost($id) {
