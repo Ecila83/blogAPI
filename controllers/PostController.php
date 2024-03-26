@@ -1,13 +1,16 @@
 <?php
 require_once(__DIR__ . '/BaseController.php');
 require_once(__DIR__ . '/../models/Posts.php');
+require_once(__DIR__ . '/../models/Users.php');
 
 
 class PostsController extends BaseController {
     private $postModel;
+    private $usersModel;
 
     public function __construct() {
         $this->postModel = new Posts();
+        $this->usersModel = new Users();
     }
 
 //recupereration 
@@ -31,18 +34,39 @@ class PostsController extends BaseController {
     }
 
     public function createPost($postData) {
-        $title = htmlspecialchars($postData->title);
-        $body = htmlspecialchars($postData->body);
-        $author = htmlspecialchars($postData->author);
-        if ($title && $body && $author) {
-            $result = $this->postModel->createPost($postData);
+        $level = $this->getCheckAuthorization();
+    
+        if ($level === 'admin' || $level === 'user') {
+            $userId = $this->getUserIdFromToken();
 
-            if ($result) {
-                $this->respJson(array("message" => "Publication créée avec succès.", "id" => intval($result)),201);
-            } elseif ($result === false) {
-                $this->respCode(500,"Échec de la création de la publication.");
+            if ($userId) {
+                $user = $this->usersModel->getUserById($userId);
+
+                if ($user) {
+                    $postData->author = $user['username'];
+                    $postData->user_id = $userId;
+
+                    if (isset($postData->title, $postData->body)) {
+                        $postData->title = htmlspecialchars($postData->title);
+                        $postData->body = htmlspecialchars($postData->body);
+
+                        $result = $this->postModel->createPost($postData);
+    
+                        if ($result) {
+                            $this->respJson(array("message" => "Publication créée avec succès.", "id" => intval($result)), 201);
+                        } elseif ($result === false) {
+                            $this->respCode(500, "Échec de la création de la publication.");
+                        } else {
+                            $this->respCode(400, "Données incomplètes.");
+                        }
+                    } else {
+                        $this->respCode(400, "Données incomplètes.");
+                    }
+                } else {
+                    $this->respCode(404, "Utilisateur introuvable.");
+                }
             } else {
-                $this->respCode(400,"Données incomplètes.");
+                $this->respCode(401, "Non autorisé");
             }
         }
     }

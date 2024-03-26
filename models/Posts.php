@@ -44,14 +44,15 @@ class Posts {
         if (isset($postData->title, $postData->body, $postData->author)) {
             $this->connectToDatabase();
 
+            $user_id = $postData->user_id;
             $title = $postData->title;
             $body = $postData->body;
             $author = $postData->author;
 
-            $query = "INSERT INTO posts (title, body, author, created_at, updated_at) VALUES (:title, :body, :author, NOW(), NOW())";
+            $query = "INSERT INTO posts (user_id, title, body, author, created_at, updated_at) VALUES (:user_id, :title, :body, :author, NOW(), NOW())";
             $statement = $this->pdo->prepare($query);
 
-            if ($statement->execute(['title' => $title, 'body' => $body, 'author' => $author])) {
+            if ($statement->execute(['user_id' => $user_id, 'title' => $title, 'body' => $body, 'author' => $author])) {
                 return $this->pdo->lastInsertId(); // Insertion réussie : retourne l'id.
             } else {
                 return false; // Échec de l'insertion

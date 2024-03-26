@@ -46,7 +46,7 @@ class BaseController {
                 $token = JWT::decode($encodedToken, new Key($key, 'HS256'));
 
                 if(time() > $token->valid_until){
-                    return "expiré";
+                    $this->respCode(401, "token expiré");
                 }
 
                 return $token->level;

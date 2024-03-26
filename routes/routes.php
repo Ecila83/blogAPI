@@ -1,7 +1,7 @@
 <?php
 
 require_once(__DIR__ . '/../controllers/PostController.php');
-require_once(__DIR__ . '/../controllers/UsersController.php');
+require_once(__DIR__ . '/../controllers/usersController.php');
 
 
 $routes = [

@@ -44,7 +44,6 @@ class UsersController extends BaseController {
             $this->respStandard($user);
         } elseif ($level === 'user') {
             $userId = $this->getUserIdFromToken();
-            $userId = intval($userId);
             $id = intval($id);
     
             if ($userId === $id) {
@@ -58,6 +57,8 @@ class UsersController extends BaseController {
             } else {
                 $this->respCode(401, "non autorisé");
             }
+        } else {
+            $this->respCode(401, "non autorisé");
         }
     }
     
