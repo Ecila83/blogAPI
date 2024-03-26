@@ -113,12 +113,22 @@ class PostsController extends BaseController {
     }
 //suprimer
     public function deletePost($id) {
-        $result = $this->postModel->deletePost($id);
+        $level = $this->getCheckAuthorization();
+        $userIdFromToken = $this->getUserIdFromToken();
 
-        if(!$result) {
-            $this->respCode(500,"Echec de la supression ");
+        $post = $this->postModel->getPostById($id);
+        $author = $post['user_id'] ?? null;
+
+        if ($level === 'admin' || ($level === 'user' && $author === $userIdFromToken)) {
+            $result = $this->postModel->deletePost($id);
+    
+            if(!$result) {
+                $this->respCode(500,"Échec de la suppression");
+            }
+    
+            $this->respJson(array("message" => "Suppression réussie.", "id" => intval($id)), 201);
+        } else {
+            $this->respCode(401, "Suppression non autorisée.");
         }
-
-        $this->respJson(array("message" => "Supression réussie.", "id" => intval($id)), 201);
     }
 }
