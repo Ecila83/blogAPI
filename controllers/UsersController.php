@@ -138,22 +138,13 @@ class UsersController extends BaseController {
             return $this->respCode(400, "Données de connexion manquantes !");
         }
     }
+    
     protected function isValidLoginData($loginData) {
         return isset($loginData->username) && isset($loginData->password);
     }
 
     protected function authenticateUser($username, $password) {
         return $this->usersModel->authenticate($username, $password);
-    }
-
-    protected function generateJWT($user) {
-        $key = $_ENV['JWT_SECRET'];
-        $payload = [
-            'id' => $user->id,
-            'level' => $user->authorization,
-            'valid_until' => time() + 3600
-        ];
-        return JWT::encode($payload, $key, 'HS256');
     }
 }
 

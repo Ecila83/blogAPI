@@ -96,4 +96,14 @@ class BaseController {
     
         return array('level' => $level, 'user_id' => $userId);
     }
+
+    protected function generateJWT($user) {
+        $key = $_ENV['JWT_SECRET'];
+        $payload = [
+            'id' => $user->id,
+            'level' => $user->authorization,
+            'valid_until' => time() + 3600
+        ];
+        return JWT::encode($payload, $key, 'HS256');
+    }
 }
