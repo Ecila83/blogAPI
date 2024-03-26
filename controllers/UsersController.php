@@ -32,37 +32,27 @@ class UsersController extends BaseController {
     }
     
     public function getUserById($id) {
-        $level = $this->getCheckAuthorization();
-        
-        if ($level === 'admin') {
-            $user = $this->usersModel->getUserById($id);
+        $userAuthData = $this->checkAuthorizationAndUserId();
+        $level = $userAuthData['level'];
+        $userIdFromToken = $userAuthData['user_id'];
     
+        if ($level !== 'admin' && $level !== 'user') {
+            $this->respCode(401, "Non autorisé");
+        }
+
+        if ($level === 'admin' || (intval($userIdFromToken) === intval($id))) {
+            $user = $this->usersModel->getUserById($id);
+
             if(!$user) {
                 $this->respCode(404,"Utilisateur introuvable");
             }
-    
-            $this->respStandard($user);
-        } elseif ($level === 'user') {
-            $userId = $this->getUserIdFromToken();
-            $id = intval($id);
-    
-            if ($userId === $id) {
-                $user = $this->usersModel->getUserById($id);
-    
-                if(!$user) {
-                    $this->respCode(404,"Utilisateur introuvable");
-                }
-    
                 $this->respStandard($user);
-            } else {
-                $this->respCode(401, "non autorisé");
-            }
         } else {
             $this->respCode(401, "non autorisé");
         }
     }
     
-
+//creer
     public function createUser($userData) {
         if(! isset($userData->username, $userData->email, $userData->password) ) {
             $this->respCode(400, "Données incomplètes.");
@@ -74,61 +64,50 @@ class UsersController extends BaseController {
 
         $result = $this->usersModel->createUser($userData);
 
-        if ($result) {
-            $this->respJson(array("message" => "Utilisateur créé avec succès.", "id" => intval($result)),201);
-        } else {
-            $this->respCode(500,"Échec de la création de l'utilisateur.");
-        }
+        $this->handleResult(
+            $result,
+            "Utilisateur créé avec succès.",
+            "Échec de la création de l'utilisateur."
+        );
     }
 
 //update
-public function updateUser($userData, $id) {      
-    $level = $this->getCheckAuthorization();
+    public function updateUser($userData, $id) {   
+        $userAuthData = $this->checkAuthorizationAndUserId(); 
+        $level = $userAuthData['level'];
+        $userIdFromToken = $userAuthData['user_id'];
 
-    // Récupérer l'ID de l'utilisateur à partir du jeton JWT
-    $userIdFromToken = $this->getUserIdFromToken();
+        if ($level === 'admin' || ($level === 'user' && $userIdFromToken === intval($id))) {
+            $existingUser = $this->usersModel->getUserById($id);
 
-    // Vérifier si l'utilisateur est autorisé à effectuer la mise à jour
-    if ($level === 'admin' || ($level === 'user' && intval($userIdFromToken) === intval($id))) {
-        // Récupérer l'utilisateur existant
-        $existingUser = $this->usersModel->getUserById($id);
+            if (!$existingUser) {
+                $this->respCode(404, "Utilisateur introuvable");
+            }
 
-        // Vérifier si l'utilisateur existe
-        if (!$existingUser) {
-            $this->respCode(404, "Utilisateur introuvable");
-        }
+            if (!isset($userData->username, $userData->email, $userData->password)) {
+                $this->respCode(400, "Données incomplètes.");
+            }
 
-        // Vérifier si les données de l'utilisateur sont complètes
-        if (!isset($userData->username, $userData->email, $userData->password)) {
-            $this->respCode(400, "Données incomplètes.");
-        }
+            $userData->username = htmlspecialchars($userData->username);
+            $userData->email = filter_var($userData->email, FILTER_SANITIZE_EMAIL);
+            $userData->password = password_hash($userData->password, PASSWORD_DEFAULT);
 
-        // Nettoyer et mettre à jour les données de l'utilisateur
-        $userData->username = htmlspecialchars($userData->username);
-        $userData->email = filter_var($userData->email, FILTER_SANITIZE_EMAIL);
-        $userData->password = password_hash($userData->password, PASSWORD_DEFAULT);
+            $result = $this->usersModel->updateUser($userData, $id);
 
-        // Mettre à jour l'utilisateur
-        $result = $this->usersModel->updateUser($userData, $id);
-
-        // Vérifier si la mise à jour a réussi
-        if ($result) {
-            $this->respJson(array("message" => "Mise à jour réussie.", "id" => intval($result)), 201);
+            $this->handleResult(
+                $result,
+                "Mise à jour réussie.",
+                "Échec de la mise à jour.",
+            );
         } else {
-            $this->respCode(500, "Échec de la mise à jour.");
+            $this->respCode(401, "Mise à jour non autorisée");
         }
-    } else {
-        $this->respCode(401, "Mise à jour non autorisée");
     }
-}
-
-
 
 //suprimer
     public function deleteUser($id) {
         $level = $this->getCheckAuthorization();
 
-        // Vérifier si l'utilisateur est autorisé à supprimer l'utilisateur
         if ($level !== 'admin') {
             $this->respCode(401, "Suppression non autorisée. Seul l'administrateur peut supprimer des utilisateurs.");
         }
@@ -142,23 +121,15 @@ public function updateUser($userData, $id) {
         $this->respJson(array("message" => "Supression réussie.", "id" => intval($id)), 201);
     }
 
-    public function loginUser($loginData){
-        if (isset($loginData->username) && isset($loginData->password)) {
-            
+//login
+    public function loginUser($loginData) {
+        if ($this->isValidLoginData($loginData)) {
             $username = $loginData->username;
             $password = $loginData->password;
-            $user = $this->usersModel->authenticate($username, $password);
+            $user = $this->authenticateUser($username, $password);
 
             if ($user) {
-                $key = $_ENV['JWT_SECRET'];
-                $payload = [
-                    'id' => $user->id,
-                    'level' => $user->authorization,
-                    'valid_until' => time() + 3600
-                ];
-                
-                $jwt = JWT::encode($payload, $key, 'HS256');
-                
+                $jwt = $this->generateJWT($user);
                 return $this->respJson(array("message" => "login réussi.", "token" => $jwt), 200);
             } else {
                 return $this->respCode(401, "Identifiants incorrects !");
@@ -167,6 +138,22 @@ public function updateUser($userData, $id) {
             return $this->respCode(400, "Données de connexion manquantes !");
         }
     }
+    protected function isValidLoginData($loginData) {
+        return isset($loginData->username) && isset($loginData->password);
+    }
 
+    protected function authenticateUser($username, $password) {
+        return $this->usersModel->authenticate($username, $password);
+    }
+
+    protected function generateJWT($user) {
+        $key = $_ENV['JWT_SECRET'];
+        $payload = [
+            'id' => $user->id,
+            'level' => $user->authorization,
+            'valid_until' => time() + 3600
+        ];
+        return JWT::encode($payload, $key, 'HS256');
+    }
 }
 
