@@ -1,84 +1,66 @@
 <?php
+namespace BlogApi\Controller;
+
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 class BaseController {
-    protected function respJson($data,$code = 200) {
-        http_response_code($code);
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-        exit();
+    protected function respJson($data, $code = 200){
+        return $this->json($data, $code, [], ['json_encode_options' => JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE]);
     }
 
-    protected function respCode($code,$message){
-        http_response_code($code);
-        header('Content-Type: application/json');
-        echo json_encode(array("message" => $message),JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-        exit();
+    protected function respCode($code, $message) {
+        return $this->json(['message' => $message], $code,[],['json_encode_options' => JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE]);
     }
 
     protected function respStandard($data) {
-        $result = [
-            "status" => 200,
-            "message" => "OK",
-            "data" => $data
-        ];
-
-        $this->respJson($result);
+        return $this->json(['status' => 200, 'message' => 'OK', 'data' => $data]);
     }
 
-    protected function handleResult($result, $successMessage, $failureMessage, $incompleteMessage = "Données incomplètes.") {
+    protected function handleResult($result, $successMessage, $failureMessage, $incompleteMessage = "Données incomplètes."){
         if ($result) {
-            $this->respJson(array("message" => $successMessage, "id" => intval($result)), 201);
+            return $this->json(['message' => $successMessage, 'id' => intval($result)], Response::HTTP_CREATED);
         } elseif ($result === false) {
-            $this->respCode(500, $failureMessage);
+            return $this->respCode(Response::HTTP_INTERNAL_SERVER_ERROR, $failureMessage);
         } else {
-            $this->respCode(400, $incompleteMessage);
+            return $this->respCode(Response::HTTP_BAD_REQUEST, $incompleteMessage);
         }
     }
 
-    protected function getTokenContent($tokenKey = null) {
-        $encodedToken = null;
-        $headers = apache_request_headers();
-    
-        if (isset($headers['Authorization'])) {
-            $matches = array();
-            preg_match('/[Bb]earer (.*)/', $headers['Authorization'], $matches);
-    
-            if (isset($matches[1])) {
-                $encodedToken = $matches[1];
-            }
-        } 
+    protected function getTokenContent(Request $request, $tokenKey = null) {
+        $encodedToken = $request->headers->get('Authorization');
     
         if ($encodedToken) {
             try {
-
                 $key = $tokenKey ?? $_ENV['JWT_SECRET'];
                 $token = JWT::decode($encodedToken, new Key($key, 'HS256'));
     
                 if (time() > $token->valid_until) {
-                    $this->respCode(401, "Token expiré");
+                    return null;
                 }
     
                 return $token;
-            } catch (Exception $e) {
-                return null; 
+            } catch (\Exception $e) {
+                return null;
             }
         } else {
-            return null; 
+            return null;
         }
     }
     
-    protected function getCheckAuthorization() {
-        $tokenContent = $this->getTokenContent();
+    protected function getCheckAuthorization(Request $request) {
+        $tokenContent = $this->getTokenContent($request);
     
         if (!$tokenContent) {
-            return "anonymous"; 
+            return "anonymous";
         }
         return $tokenContent->level;
     }
 
-    protected function getUserIdFromToken() {
-        $tokenContent = $this->getTokenContent();
+    protected function getUserIdFromToken(Request $request) {
+        $tokenContent = $this->getTokenContent($request);
     
         if (!$tokenContent) {
             return null; 
@@ -86,15 +68,15 @@ class BaseController {
         return $tokenContent->id;
     }
 
-    public function checkAuthorizationAndUserId() {
-        $level = $this->getCheckAuthorization();
-        $userId = $this->getUserIdFromToken();
+    public function checkAuthorizationAndUserId(Request $request) {
+        $level = $this->getCheckAuthorization($request);
+        $userId = $this->getUserIdFromToken($request);
     
         if ($level !== 'admin' && $level !== 'user' || !$userId) {
-            $this->respCode(401, "Non autorisé");
+            return $this->respCode(Response::HTTP_UNAUTHORIZED, "Non autorisé");
         }
-    
-        return array('level' => $level, 'user_id' => $userId);
+        
+        return ['level' => $level, 'user_id' => $userId];
     }
 
     protected function generateJWT($user) {
