@@ -3,12 +3,15 @@ require_once(__DIR__ . '/BaseController.php');
 require_once(__DIR__ . '/../models/Posts.php');
 require_once(__DIR__ . '/../models/Users.php');
 
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 class PostsController extends BaseController {
     private $postModel;
     private $usersModel;
 
     public function __construct() {
+        parent::__construct();
         $this->postModel = new Posts();
         $this->usersModel = new Users();
     }

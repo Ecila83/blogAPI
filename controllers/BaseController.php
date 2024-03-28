@@ -1,43 +1,53 @@
 <?php
-namespace BlogApi\Controller;
-
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+
 class BaseController {
-    protected function respJson($data, $code = 200){
-        return $this->json($data, $code, [], ['json_encode_options' => JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE]);
+    protected function respJson($data, $code = 200) {
+        return new JsonResponse($data, $code, [],JSON_UNESCAPED_UNICODE);
     }
 
     protected function respCode($code, $message) {
-        return $this->json(['message' => $message], $code,[],['json_encode_options' => JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE]);
+        return new JsonResponse(['message' => $message], $code, [],JSON_UNESCAPED_UNICODE);
     }
 
     protected function respStandard($data) {
-        return $this->json(['status' => 200, 'message' => 'OK', 'data' => $data]);
+        return new JsonResponse(['status' => 200, 'message' => 'OK', 'data' => $data]);
     }
 
-    protected function handleResult($result, $successMessage, $failureMessage, $incompleteMessage = "Données incomplètes."){
+    protected function handleResult($result, $successMessage, $failureMessage, $incompleteMessage = "Données incomplètes.") {
+        $options = JSON_UNESCAPED_UNICODE;
+
         if ($result) {
-            return $this->json(['message' => $successMessage, 'id' => intval($result)], Response::HTTP_CREATED);
+            $responseData = ['message' => $successMessage, 'id' => intval($result)];
+            return (new JsonResponse($responseData, Response::HTTP_CREATED))->setEncodingOptions($options);
         } elseif ($result === false) {
-            return $this->respCode(Response::HTTP_INTERNAL_SERVER_ERROR, $failureMessage);
+            return (new JsonResponse(['message' => $failureMessage], Response::HTTP_INTERNAL_SERVER_ERROR))->setEncodingOptions($options);
         } else {
-            return $this->respCode(Response::HTTP_BAD_REQUEST, $incompleteMessage);
+            return (new JsonResponse(['message' => $incompleteMessage], Response::HTTP_BAD_REQUEST))->setEncodingOptions($options);
         }
     }
 
-    protected function getTokenContent(Request $request, $tokenKey = null) {
-        $encodedToken = $request->headers->get('Authorization');
+    protected function getTokenContent(Request $request) {
+        $matches = array();
+        $rawAuthorization = $request->headers->get('Authorization');
+
+        if($rawAuthorization) {
+            preg_match('/[Bb]earer (.*)/', $rawAuthorization, $matches);
+        }
     
-        if ($encodedToken) {
+        if ($matches) {
+            $encodedToken = $matches[1];
             try {
-                $key = $tokenKey ?? $_ENV['JWT_SECRET'];
+                $key = $_ENV['JWT_SECRET'];
                 $token = JWT::decode($encodedToken, new Key($key, 'HS256'));
     
-                if (time() > $token->valid_until) {
+                $now = time();
+                if ($now > $token->valid_until) {
                     return null;
                 }
     
@@ -56,6 +66,7 @@ class BaseController {
         if (!$tokenContent) {
             return "anonymous";
         }
+
         return $tokenContent->level;
     }
 
@@ -73,7 +84,7 @@ class BaseController {
         $userId = $this->getUserIdFromToken($request);
     
         if ($level !== 'admin' && $level !== 'user' || !$userId) {
-            return $this->respCode(Response::HTTP_UNAUTHORIZED, "Non autorisé");
+            return ['level' => 'anonymous', 'user_id' => -1];
         }
         
         return ['level' => $level, 'user_id' => $userId];

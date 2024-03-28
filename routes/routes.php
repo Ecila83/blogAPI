@@ -1,38 +1,42 @@
-<?php
-
+<?php 
 require_once(__DIR__ . '/../controllers/PostController.php');
 require_once(__DIR__ . '/../controllers/usersController.php');
+
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 
 $routes = [
     'GET' => [
-        '/api/v1/posts' => fn() => (new PostsController())->getAllPosts(),
-        '/api/v1/post/(.+)' => fn($id) => (new PostsController())->getPostById($id),
+        '/api/v1/posts' => fn($request) => (new PostsController())->getAllPosts($request),
+        '/api/v1/post/(.+)' => fn($request, $id) => (new PostsController())->getPostById($request, $id),
 
-        '/api/v1/users' => fn() => (new UsersController())->getAllUsers(),
-        '/api/v1/user/(.+)' => fn($id) => (new UsersController())->getUserById($id),
+        '/api/v1/users' => fn($request) => (new UsersController())->getAllUsers($request),
+        '/api/v1/user/(.+)' => fn($request, $id) => (new UsersController())->getUserById($request, $id),
     ],
     'POST' => [
-        '/api/v1/post' => fn($postData) => (new PostsController())->createPost($postData),
+        '/api/v1/post' => fn($request, $data) => (new PostsController())->createPost($request, $data),
 
-        '/api/v1/user' => fn($userData) => (new UsersController())->createUser($userData),
-        '/api/v1/user/login' => fn($loginData) => (new UsersController())->loginUser($loginData),
+        '/api/v1/user' => fn($request, $data) => (new UsersController())->createUser($request, $data),
+        '/api/v1/user/login' => fn($request, $data) => (new UsersController())->loginUser($request, $data),
     ],
     'PUT' => [
-        '/api/v1/post/(.+)' => fn($postData, $id) => (new PostsController())->updatePost($postData, $id),
+        '/api/v1/post/(.+)' => fn($request, $data, $id) => (new PostsController())->updatePost($request, $data, $id),
 
-        '/api/v1/user/(.+)' => fn($userData,$id) => (new UsersController())->updateUser($userData,$id),
+        '/api/v1/user/(.+)' => fn($request, $data, $id) => (new UsersController())->updateUser($request, $data, $id),
     ],
     'DELETE' => [
-        '/api/v1/post/(.+)' => fn($id) => (new PostsController())->deletePost($id),
+        '/api/v1/post/(.+)' => fn($request, $id) => (new PostsController())->deletePost($request, $id),
 
-        '/api/v1/user/(.+)' => fn($id) => (new UsersController())->deleteUser($id),
-
+        '/api/v1/user/(.+)' => fn($request, $id) => (new UsersController())->deleteUser($request, $id),
     ]
 ];
 
-$method = strtoupper($_SERVER['REQUEST_METHOD']);
-$path = $_SERVER['PATH_INFO'];
+$request = Request::createFromGlobals();
+
+$method = $request->getMethod();
+$path = $request->getPathInfo();
 
 if(isset($routes[$method])) {
     $routesToCheck = $routes[$method];
@@ -46,20 +50,18 @@ if(isset($routes[$method])) {
                 break;
                 case 'PUT':
                 case 'POST':
-                    $payload = file_get_contents('php://input');
-                    $matches[0] = json_decode($payload);
+                    $matches[0] = json_decode($request->getContent());
                 break;
             }
 
-            call_user_func_array($func, $matches);
+            array_unshift($matches, $request);
+
+            $response = call_user_func_array($func, $matches);
+            $response->send();
             exit();
         }
     }
 }
 
-http_response_code(404);
-echo json_encode(array("message" => "Route introuvable."));
-
-
-
-
+$response = new JsonResponse(['message' => 'Route introuvable.'], Response::HTTP_NOT_FOUND);
+$response->send();

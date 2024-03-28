@@ -1,7 +1,10 @@
 <?php
-
 require_once(__DIR__ . '/BaseController.php');
 require_once(__DIR__ . '/../models/Users.php');
+
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
@@ -17,45 +20,48 @@ class UsersController extends BaseController {
 
 //recupereration 
     //tout
-    public function getAllUsers() {
-        $level = $this->getCheckAuthorization();
-        
-        if ($level === 'admin') {
-            $limit = intval($_GET['limit'] ?? '-1');
-            $offset = intval($_GET['offset'] ?? '-1');
-    
-            $users = $this->usersModel->getAllUsers($limit, $offset);
-            $this->respStandard($users);
-        } elseif ($level === 'user') {      
-            $this->respCode(401, "non autorisé");
+    public function getAllUsers(Request $request) {
+        $level = $this->getCheckAuthorization($request);
+
+        if ($level !== 'admin') {
+            return new JsonResponse(['error' => 'Unauthorized'], Response::HTTP_UNAUTHORIZED);
         }
+        
+        $limit = intval($request->query->get('limit', -1));
+        $offset = intval($request->query->get('offset', -1));
+
+        $users = $this->usersModel->getAllUsers($limit, $offset);
+        return new JsonResponse(['status' => 'success', 'data' => $users], Response::HTTP_OK);
     }
     
-    public function getUserById($id) {
-        $userAuthData = $this->checkAuthorizationAndUserId();
+    public function getUserById(Request $request, $id) {
+        $userAuthData = $this->checkAuthorizationAndUserId($request);
+        
         $level = $userAuthData['level'];
         $userIdFromToken = $userAuthData['user_id'];
     
         if ($level !== 'admin' && $level !== 'user') {
-            $this->respCode(401, "Non autorisé");
+            return new JsonResponse(['error' => 'Unauthorized'], Response::HTTP_UNAUTHORIZED);
         }
 
         if ($level === 'admin' || (intval($userIdFromToken) === intval($id))) {
             $user = $this->usersModel->getUserById($id);
 
             if(!$user) {
-                $this->respCode(404,"Utilisateur introuvable");
+                return new JsonResponse(['error' => 'User not found'], Response::HTTP_NOT_FOUND);
             }
-                $this->respStandard($user);
-        } else {
-            $this->respCode(401, "non autorisé");
-        }
+
+            return new JsonResponse(['status' => 'success', 'data' => $user], Response::HTTP_OK);
+        } 
+        
+        return new JsonResponse(['error' => 'Unauthorized'], Response::HTTP_UNAUTHORIZED);
     }
+ 
     
 //creer
-    public function createUser($userData) {
+    public function createUser(Request $request, $userData) {
         if(! isset($userData->username, $userData->email, $userData->password) ) {
-            $this->respCode(400, "Données incomplètes.");
+            return new JsonResponse(['error' => 'Incomplete data'], Response::HTTP_BAD_REQUEST);
         }
 
         $userData->username = htmlspecialchars($userData->username);
@@ -64,16 +70,17 @@ class UsersController extends BaseController {
 
         $result = $this->usersModel->createUser($userData);
 
-        $this->handleResult(
+        return $this->handleResult(
             $result,
             "Utilisateur créé avec succès.",
-            "Échec de la création de l'utilisateur."
+            "Échec de la création de l'utilisateur.",
+            "Données incomplètes."
         );
     }
 
 //update
-    public function updateUser($userData, $id) {   
-        $userAuthData = $this->checkAuthorizationAndUserId(); 
+    public function updateUser(Request $request, $data, $id) {   
+        $userAuthData = $this->checkAuthorizationAndUserId($request); 
         $level = $userAuthData['level'];
         $userIdFromToken = $userAuthData['user_id'];
 
@@ -81,11 +88,13 @@ class UsersController extends BaseController {
             $existingUser = $this->usersModel->getUserById($id);
 
             if (!$existingUser) {
-                $this->respCode(404, "Utilisateur introuvable");
+                return new JsonResponse(['error' => 'Utilisateur introuvable'], Response::HTTP_NOT_FOUND);
             }
 
+            $userData = json_decode($request->getContent());
+
             if (!isset($userData->username, $userData->email, $userData->password)) {
-                $this->respCode(400, "Données incomplètes.");
+                return new JsonResponse(['error' => 'Données incomplètes'], Response::HTTP_BAD_REQUEST);
             }
 
             $userData->username = htmlspecialchars($userData->username);
@@ -94,35 +103,36 @@ class UsersController extends BaseController {
 
             $result = $this->usersModel->updateUser($userData, $id);
 
-            $this->handleResult(
+            return $this->handleResult(
                 $result,
                 "Mise à jour réussie.",
                 "Échec de la mise à jour.",
+                "Données incomplètes."
             );
         } else {
-            $this->respCode(401, "Mise à jour non autorisée");
+            return new JsonResponse(['error' => 'Mise à jour non autorisée'], Response::HTTP_UNAUTHORIZED);
         }
     }
 
 //suprimer
-    public function deleteUser($id) {
-        $level = $this->getCheckAuthorization();
+    public function deleteUser(Request $request, $id) {
+        $level = $this->getCheckAuthorization($request);
 
         if ($level !== 'admin') {
-            $this->respCode(401, "Suppression non autorisée. Seul l'administrateur peut supprimer des utilisateurs.");
+            return new JsonResponse(['error' => "Suppression non autorisée. Seul l'administrateur peut supprimer des utilisateurs."], Response::HTTP_UNAUTHORIZED);
         }
 
         $result = $this->usersModel->deleteUser($id);
 
         if(!$result) {
-            $this->respCode(500,"Echec de la supression ");
+            return new JsonResponse(['error' => "Échec de la suppression."], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 
-        $this->respJson(array("message" => "Supression réussie.", "id" => intval($id)), 201);
+        return new JsonResponse(['message' => "Suppression réussie.", 'id' => intval($id)], Response::HTTP_CREATED);
     }
 
 //login
-    public function loginUser($loginData) {
+    public function loginUser($request, $loginData) {
         if ($this->isValidLoginData($loginData)) {
             $username = $loginData->username;
             $password = $loginData->password;
@@ -130,12 +140,15 @@ class UsersController extends BaseController {
 
             if ($user) {
                 $jwt = $this->generateJWT($user);
-                return $this->respJson(array("message" => "login réussi.", "token" => $jwt), 200);
+                $responseData = ['message' => 'Authentification réussie.', 'token' => $jwt];
+                $jsonResponse = new JsonResponse($responseData, JsonResponse::HTTP_OK);
+                $jsonResponse->setEncodingOptions(JSON_UNESCAPED_UNICODE);
+                return $jsonResponse;
             } else {
-                return $this->respCode(401, "Identifiants incorrects !");
+                return new JsonResponse(['error' => 'Identifiants incorrects !'], JsonResponse::HTTP_UNAUTHORIZED);
             }
         } else {
-            return $this->respCode(400, "Données de connexion manquantes !");
+            return new JsonResponse(['error' => 'Données de connexion manquantes !'], JsonResponse::HTTP_BAD_REQUEST);
         }
     }
     
