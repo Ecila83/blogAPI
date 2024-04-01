@@ -7,28 +7,14 @@ use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
 class BaseController {
-    protected function respJson($data, $code = 200) {
-        return new JsonResponse($data, $code, [],JSON_UNESCAPED_UNICODE);
-    }
-
-    protected function respCode($code, $message) {
-        return new JsonResponse(['message' => $message], $code, [],JSON_UNESCAPED_UNICODE);
-    }
-
-    protected function respStandard($data) {
-        return new JsonResponse(['status' => 200, 'message' => 'OK', 'data' => $data]);
-    }
-
     protected function handleResult($result, $successMessage, $failureMessage, $incompleteMessage = "Données incomplètes.") {
-        $options = JSON_UNESCAPED_UNICODE;
-
         if ($result) {
             $responseData = ['message' => $successMessage, 'id' => intval($result)];
-            return (new JsonResponse($responseData, Response::HTTP_CREATED))->setEncodingOptions($options);
+            return new JsonResponse($responseData, Response::HTTP_CREATED);
         } elseif ($result === false) {
-            return (new JsonResponse(['message' => $failureMessage], Response::HTTP_INTERNAL_SERVER_ERROR))->setEncodingOptions($options);
+            return new JsonResponse(['message' => $failureMessage], Response::HTTP_INTERNAL_SERVER_ERROR);
         } else {
-            return (new JsonResponse(['message' => $incompleteMessage], Response::HTTP_BAD_REQUEST))->setEncodingOptions($options);
+            return new JsonResponse(['message' => $incompleteMessage], Response::HTTP_BAD_REQUEST);
         }
     }
 

@@ -5,59 +5,62 @@ require_once(__DIR__ . '/../models/Users.php');
 
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 class PostsController extends BaseController {
     private $postModel;
     private $usersModel;
 
     public function __construct() {
-        parent::__construct();
         $this->postModel = new Posts();
         $this->usersModel = new Users();
     }
 
 //recupereration 
     //tout
-    public function getAllPosts() {
-        $limit = intval($_GET['limit'] ?? '-1');
-        $offset = intval($_GET['offset'] ?? '-1');
+    public function getAllPosts(Request $request) {
+        $limit = intval($request->query->get('limit', -1));
+        $offset = intval($request->query->get('offset', -1));
+        
         $posts = $this->postModel->getAllPosts($limit, $offset);
-        $this->respStandard($posts);
+        return new JsonResponse(['status' => 'success', 'posts' => $posts],Response::HTTP_OK);
     }
 
     //par id
-    public function getPostById($id) {
+    public function getPostById(Request $request,$id) {
         $post = $this->postModel->getPostById($id);
 
         if(!$post) {
-            $this->respCode(404,"Publication introuvable");
+            return new JsonResponse(['error' => 'User not found'], Response::HTTP_NOT_FOUND);
         }
 
-        $this->respStandard($post);
+        return new JsonResponse(['status' => 'success', 'posts' => $post],Response::HTTP_OK);
     }
 
 //creation
-    public function createPost($postData) {
+    public function createPost(Request $request, $postData) {
         if (!isset($postData->title, $postData->body)) {
-            $this->respCode(400, "Données incomplètes.");
+            return new JsonResponse(['error' => 'Incomplete data'], Response::HTTP_BAD_REQUEST);
         }
 
-        ['level' => $level, 'user_id' => $userId] = $this->checkAuthorizationAndUserId();
+        ['level' => $level, 'user_id' => $userId] = $this->checkAuthorizationAndUserId($request);
 
         $user = $this->usersModel->getUserById($userId);
         if (!$user) {
-            $this->respCode(404, "Utilisateur introuvable.");
+            return new JsonResponse(['error' => 'Utilisateur introuvable.'], Response::HTTP_NOT_FOUND);
         }
 
         $title = htmlspecialchars($postData->title);
         $body = htmlspecialchars($postData->body);
 
+        $postData->title = $title;
+        $postData->body = $body;
         $postData->author = $user['username'];
         $postData->user_id = $userId;
 
         $result = $this->postModel->createPost($postData);
 
-        $this->handleResult(
+        return $this->handleResult(
             $result, 
             "Publication créée avec succès.", 
             "Échec de la création de la publication."
@@ -65,22 +68,23 @@ class PostsController extends BaseController {
     }
 
 //update
-public function updatePost($postData, $id) {
-    $userData = $this->checkAuthorizationAndUserId();
+public function updatePost(Request $request,$postData, $id) {
+
+    $userData = $this->checkAuthorizationAndUserId($request);
     $level = $userData['level'];
     $userIdFromToken = $userData['user_id'];
 
     $existingPost = $this->postModel->getPostById($id);
     if (!$existingPost) {
-        $this->respCode(404, "Post introuvable");
+        return new JsonResponse(['error' => 'Post introuvable'], Response::HTTP_NOT_FOUND);
     }
 
     if ($level !== 'admin' && intval($userIdFromToken) !==  $existingPost['user_id']) {
-        $this->respCode(401, "Non autorisé");
+        return new JsonResponse(['error' => 'Non autorisé'], Response::HTTP_UNAUTHORIZED);
     }
 
     if (!isset($postData->title, $postData->body, $postData->author)) {
-        $this->respCode(400, "Données incomplètes.");
+        return new JsonResponse(['error' => 'Données incomplètes'], Response::HTTP_BAD_REQUEST);
     }
 
     $title = htmlspecialchars($postData->title);
@@ -96,7 +100,7 @@ public function updatePost($postData, $id) {
 
         $result = $this->postModel->updatePost($id, $updatedPostData);
 
-        $this->handleResult(
+        return $this->handleResult(
             $result,
             "Mise à jour réussie.",
             "Échec de la mise à jour.",
@@ -106,9 +110,9 @@ public function updatePost($postData, $id) {
 }
 
 //suprimer
-    public function deletePost($id) {
-        $level = $this->getCheckAuthorization();
-        $userIdFromToken = $this->getUserIdFromToken();
+    public function deletePost(Request $request,$id) {
+        $level = $this->getCheckAuthorization($request);
+        $userIdFromToken = $this->getUserIdFromToken($request);
 
         $post = $this->postModel->getPostById($id);
         $author = $post['user_id'] ?? null;
@@ -117,12 +121,12 @@ public function updatePost($postData, $id) {
             $result = $this->postModel->deletePost($id);
     
             if(!$result) {
-                $this->respCode(500,"Échec de la suppression");
+                return new JsonResponse(['error' => 'Échec de la suppression'], Response::HTTP_INTERNAL_SERVER_ERROR);
             }
     
-            $this->respJson(array("message" => "Suppression réussie.", "id" => intval($id)), 201);
+            return new JsonResponse(['message' => 'Suppression réussie.', 'id' => intval($id)], Response::HTTP_OK);
         } else {
-            $this->respCode(401, "Suppression non autorisée.");
+            return new JsonResponse(['error' => 'Suppression non autorisée'], Response::HTTP_UNAUTHORIZED);
         }
     }
 }

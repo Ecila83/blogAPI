@@ -1,4 +1,5 @@
 <?php 
+
 require_once(__DIR__ . '/../controllers/PostController.php');
 require_once(__DIR__ . '/../controllers/usersController.php');
 
@@ -57,6 +58,7 @@ if(isset($routes[$method])) {
             array_unshift($matches, $request);
 
             $response = call_user_func_array($func, $matches);
+            $response->setEncodingOptions(JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
             $response->send();
             exit();
         }

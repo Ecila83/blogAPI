@@ -6,11 +6,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
-
-
-
 class UsersController extends BaseController {
     private Users $usersModel;
 
@@ -142,7 +137,6 @@ class UsersController extends BaseController {
                 $jwt = $this->generateJWT($user);
                 $responseData = ['message' => 'Authentification réussie.', 'token' => $jwt];
                 $jsonResponse = new JsonResponse($responseData, JsonResponse::HTTP_OK);
-                $jsonResponse->setEncodingOptions(JSON_UNESCAPED_UNICODE);
                 return $jsonResponse;
             } else {
                 return new JsonResponse(['error' => 'Identifiants incorrects !'], JsonResponse::HTTP_UNAUTHORIZED);
